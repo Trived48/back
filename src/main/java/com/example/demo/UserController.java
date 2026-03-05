@@ -27,6 +27,17 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody Users user) {
+        if (user == null
+                || user.getUsername() == null || user.getUsername().isBlank()
+                || user.getEmail() == null || user.getEmail().isBlank()
+                || user.getPassword() == null || user.getPassword().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("username, email and password are required");
+        }
+
+        user.setUsername(user.getUsername().trim());
+        user.setEmail(user.getEmail().trim().toLowerCase());
+
         Users u = this.userRepo.findByEmail(user.getEmail());
         if (u != null) {
             return ResponseEntity.ok("Email already exists");

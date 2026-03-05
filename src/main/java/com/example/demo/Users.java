@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,12 +17,15 @@ public class Users {
    private Long id;
 
    @Column(unique = true, nullable = false)
+    @JsonAlias({"name", "userName", "user_name"})
    private String username;
 
    @Column(unique = true, nullable = false)
+    @JsonAlias({"mail", "emailId", "email_id"})
    private String email;
    
    @Column(nullable = false)
+    @JsonAlias({"pass", "pwd"})
    private String password;
 
    public Users() {}
