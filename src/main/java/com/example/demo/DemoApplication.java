@@ -34,9 +34,21 @@ public class DemoApplication {
 			return;
 		}
 
-		String host = firstNonBlank(System.getenv("PGHOST"), System.getenv("POSTGRES_HOST"));
-		String database = firstNonBlank(System.getenv("PGDATABASE"), System.getenv("POSTGRES_DB"));
-		String portText = firstNonBlank(System.getenv("PGPORT"), System.getenv("POSTGRES_PORT"));
+		String host = firstNonBlank(
+				System.getenv("PGHOST"),
+				System.getenv("POSTGRES_HOST"),
+				System.getenv("DATABASE_HOST")
+		);
+		String database = firstNonBlank(
+				System.getenv("PGDATABASE"),
+				System.getenv("POSTGRES_DB"),
+				System.getenv("DATABASE_NAME")
+		);
+		String portText = firstNonBlank(
+				System.getenv("PGPORT"),
+				System.getenv("POSTGRES_PORT"),
+				System.getenv("DATABASE_PORT")
+		);
 
 		if (host == null || database == null) {
 			return;
@@ -54,8 +66,17 @@ public class DemoApplication {
 		String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + database;
 		System.setProperty("spring.datasource.url", jdbcUrl);
 
-		String username = firstNonBlank(System.getenv("PGUSER"), System.getenv("POSTGRES_USER"));
-		String password = firstNonBlank(System.getenv("PGPASSWORD"), System.getenv("POSTGRES_PASSWORD"));
+		String username = firstNonBlank(
+				System.getenv("PGUSER"),
+				System.getenv("POSTGRES_USER"),
+				System.getenv("DATABASE_USER"),
+				System.getenv("DATABASE_USERNAME")
+		);
+		String password = firstNonBlank(
+				System.getenv("PGPASSWORD"),
+				System.getenv("POSTGRES_PASSWORD"),
+				System.getenv("DATABASE_PASSWORD")
+		);
 
 		if (username != null) {
 			System.setProperty("spring.datasource.username", username);
