@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,17 +28,37 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Users user) {
-        if (user == null
-                || user.getUsername() == null || user.getUsername().isBlank()
-                || user.getEmail() == null || user.getEmail().isBlank()
-                || user.getPassword() == null || user.getPassword().isBlank()) {
+    public ResponseEntity<String> register(@RequestBody Map<String, Object> payload) {
+        String username = firstNonBlank(
+                payload,
+                "username",
+                "name",
+                "userName",
+                "user_name"
+        );
+        String email = firstNonBlank(
+                payload,
+                "email",
+                "mail",
+                "emailId",
+                "email_id"
+        );
+        String password = firstNonBlank(
+                payload,
+                "password",
+                "pass",
+                "pwd"
+        );
+
+        if (username == null || email == null || password == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("username, email and password are required");
         }
 
-        user.setUsername(user.getUsername().trim());
-        user.setEmail(user.getEmail().trim().toLowerCase());
+        Users user = new Users();
+        user.setUsername(username.trim());
+        user.setEmail(email.trim().toLowerCase());
+        user.setPassword(password);
 
         Users u = this.userRepo.findByEmail(user.getEmail());
         if (u != null) {
@@ -44,5 +66,22 @@ public class UserController {
         }
         this.userRepo.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
+    }
+
+    private String firstNonBlank(Map<String, Object> payload, String... keys) {
+        if (payload == null) {
+            return null;
+        }
+        for (String key : keys) {
+            Object value = payload.get(key);
+            if (value == null) {
+                continue;
+            }
+            String text = value.toString();
+            if (!text.isBlank()) {
+                return text;
+            }
+        }
+        return null;
     }
 }
