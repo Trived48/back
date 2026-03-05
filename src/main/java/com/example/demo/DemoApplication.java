@@ -16,32 +16,66 @@ public class DemoApplication {
 	}
 
 	private static void configureDatasourceFromEnvironment() {
-		String alreadyConfiguredUrl = firstNonBlank(
+		String configuredUrl = firstNonBlank(
 				System.getProperty("spring.datasource.url"),
 				System.getenv("SPRING_DATASOURCE_URL"),
-				System.getenv("JDBC_DATABASE_URL")
+				System.getenv("JDBC_DATABASE_URL"),
+				System.getenv("DATABASE_URL"),
+				System.getenv("INTERNAL_DATABASE_URL"),
+				System.getenv("POSTGRES_URL"),
+				System.getenv("POSTGRES_INTERNAL_URL")
 		);
 
-		if (alreadyConfiguredUrl != null) {
+		if (configuredUrl != null) {
+			String normalizedUrl = normalizeToJdbcUrl(configuredUrl);
+			if (normalizedUrl != null) {
+				System.setProperty("spring.datasource.url", normalizedUrl);
+			}
 			return;
 		}
 
-		String databaseUrl = firstNonBlank(
-				System.getenv("DATABASE_URL"),
-				System.getenv("INTERNAL_DATABASE_URL")
-		);
+		String host = firstNonBlank(System.getenv("PGHOST"), System.getenv("POSTGRES_HOST"));
+		String database = firstNonBlank(System.getenv("PGDATABASE"), System.getenv("POSTGRES_DB"));
+		String portText = firstNonBlank(System.getenv("PGPORT"), System.getenv("POSTGRES_PORT"));
 
-		if (databaseUrl == null) {
+		if (host == null || database == null) {
 			return;
+		}
+
+		int port = 5432;
+		if (portText != null) {
+			try {
+				port = Integer.parseInt(portText);
+			} catch (NumberFormatException ignored) {
+				port = 5432;
+			}
+		}
+
+		String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + database;
+		System.setProperty("spring.datasource.url", jdbcUrl);
+
+		String username = firstNonBlank(System.getenv("PGUSER"), System.getenv("POSTGRES_USER"));
+		String password = firstNonBlank(System.getenv("PGPASSWORD"), System.getenv("POSTGRES_PASSWORD"));
+
+		if (username != null) {
+			System.setProperty("spring.datasource.username", username);
+		}
+		if (password != null) {
+			System.setProperty("spring.datasource.password", password);
+		}
+	}
+
+	private static String normalizeToJdbcUrl(String databaseUrl) {
+		if (databaseUrl == null || databaseUrl.isBlank()) {
+			return null;
 		}
 
 		if (databaseUrl.startsWith("jdbc:postgresql://")) {
-			System.setProperty("spring.datasource.url", databaseUrl);
-			return;
+			return databaseUrl;
 		}
 
 		if (!(databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://"))) {
-			return;
+			return null;
 		}
 
 		URI uri = URI.create(databaseUrl);
@@ -50,10 +84,14 @@ public class DemoApplication {
 		String database = uri.getPath() == null ? "" : uri.getPath();
 
 		if (host == null || database.isBlank()) {
-			return;
+			return null;
 		}
 
 		String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + database;
+		String query = uri.getQuery();
+		if (query != null && !query.isBlank()) {
+			jdbcUrl = jdbcUrl + "?" + query;
+		}
 		System.setProperty("spring.datasource.url", jdbcUrl);
 
 		String userInfo = uri.getUserInfo();
@@ -66,6 +104,8 @@ public class DemoApplication {
 				System.setProperty("spring.datasource.password", decode(credentials[1]));
 			}
 		}
+
+		return jdbcUrl;
 	}
 
 	private static String firstNonBlank(String... values) {
